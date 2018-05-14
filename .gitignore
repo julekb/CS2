@@ -1,0 +1,7 @@
+*.DS_Store
+*.pkl
+*.ipynb
+
+wino_nagrania_final/
+data/
+pkl/
