@@ -13,7 +13,6 @@ import re
 
 
 
-
 """
 Data preprocessing and saving them to a pickle files so they can be opened in main.py.
 
@@ -53,6 +52,7 @@ def audio_partition(audio, rate, script, classes):
 if __name__ == '__main__':
 
     ### Import data ###
+
     print('Data importing started.')
 
     path = 'wino_nagrania_final/'
@@ -64,6 +64,7 @@ if __name__ == '__main__':
     script_names = list(filter(r.match, file_names))
 
     rate = 22050
+    classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
 
     audio_names = []
     not_there = []
@@ -84,6 +85,8 @@ if __name__ == '__main__':
     audios = []
 
     for i, (script_name, audio_name) in enumerate(zip(script_names, audio_names)):
+        # if i > 1:
+        #     break
         script = pd.read_excel(script_path+script_name, index_col=0)
         audio, _ = librosa.load(path+audio_name) # by default converted to mono and sr to 22050
         scripts.append(script)
@@ -94,8 +97,11 @@ if __name__ == '__main__':
     # TODO
     # has to be done since there there is only one sample of the classes and it does not work
     # it should work with regex later
-    scripts2 = np.delete(scripts, [10, 16])
-    audios2 = np.delete(audios, [10, 16])
+    try:
+        scripts2 = np.delete(scripts, [10, 16])
+        audios2 = np.delete(audios, [10, 16])
+    except:
+        scripts2, audios2 = scripts, audios
 
 
     print('Audio partition started.')
@@ -108,12 +114,15 @@ if __name__ == '__main__':
 
 
     print('Saving Xs and ys.')
-    with open('pkl/Xs.pkl', 'wb') as f:
-        pkl.dump(Xs, f)
-    with open('pkl/Ys.pkl', 'wb') as f:
-        pkl.dump(ys, f)
+    try: # file can be to big pkl.loads or cPickle could help
+        with open('pkl/Xs.pkl', 'wb') as f:
+            pkl.dump(Xs, f)
+        with open('pkl/Ys.pkl', 'wb') as f:
+            pkl.dump(ys, f)
+    except:
+        print('Not saved.')
 
-    # delete an empty row
+    # delete  empty rows
     empty_inds = [i for i,x in np.ndenumerate(Xs) if x.size == 0]
     Xs2 = np.delete(Xs, empty_inds)
     ys2 = np.delete(ys, empty_inds)
