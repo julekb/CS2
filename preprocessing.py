@@ -18,6 +18,11 @@ Data preprocessing and saving them to a pickle files so they can be opened in ma
 
 """
 
+#flags
+MFCC = True
+FFT = True
+
+
 def audio_partition(audio, rate, script, classes):
     """
     input:
@@ -51,8 +56,13 @@ def audio_partition(audio, rate, script, classes):
 
 if __name__ == '__main__':
 
+    rate = 22050
+    classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
+
     ### Import data ###
 
+
+    # """
     print('Data importing started.')
 
     path = 'wino_nagrania_final/'
@@ -63,8 +73,7 @@ if __name__ == '__main__':
     r = re.compile("s\d{2}\-\d\.xlsx")
     script_names = list(filter(r.match, file_names))
 
-    rate = 22050
-    classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
+
 
     audio_names = []
     not_there = []
@@ -121,24 +130,39 @@ if __name__ == '__main__':
             pkl.dump(ys, f)
     except:
         print('Not saved.')
+    # """
+
+    print('loading data')
+    with open('pkl/Xs.pkl', 'rb') as f:
+        Xs = pkl.load(f)
+    with open('pkl/Ys.pkl', 'rb') as f:
+        ys = pkl.load(f)
 
     # delete  empty rows
+    print(ys)
     empty_inds = [i for i,x in np.ndenumerate(Xs) if x.size == 0]
     Xs2 = np.delete(Xs, empty_inds)
     ys2 = np.delete(ys, empty_inds)
 
-    NUM_mfcc = 100
-    Xs_mfcc = np.empty((len(Xs2), NUM_mfcc))
+    if MFCC:
+        NUM_mfcc = 100
+        Xs_mfcc = np.empty((len(Xs2), NUM_mfcc))
 
-    for i, X in np.ndenumerate(Xs2):
-        Xs_mfcc[i] = np.mean(librosa.feature.mfcc(y=X, sr=rate, n_mfcc=NUM_mfcc).T, axis=0)
-        
-    lb = LabelBinarizer().fit(ys2)
-    ys_num = lb.transform(ys2)
+        # for i, X in np.ndenumerate(Xs2):
+        #     X = np.fft.hfft(X) # Hermitian FFT gives a real output but the signal should have Hermitian symmetry?!
+        #     Xs_mfcc[i] = np.mean(librosa.feature.mfcc(y=X, sr=rate, n_mfcc=NUM_mfcc).T, axis=0)
+            
+        print(ys2.shape)
+        lb = LabelBinarizer().fit(ys2)
+        ys_num = lb.transform(ys2)
+        print(ys_num.shape)
 
-    print('Saving mfccs.')
-    with open('pkl/Xs_mfcc.pkl', 'wb') as f:
-        pkl.dump(Xs_mfcc, f)
-    with open('pkl/Ys.pkl', 'wb') as f:
-        pkl.dump(ys_num, f)
+        print('Saving mfccs.')
+        # with open('pkl/Xs_mfccF.pkl', 'wb') as f:
+        #     pkl.dump(Xs_mfcc, f)
+        with open('pkl/ys_num.pkl', 'wb') as f:
+            pkl.dump(ys_num, f)
+
+    if FFT:
+        pass
     

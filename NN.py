@@ -8,6 +8,7 @@ from keras import regularizers
 from keras.utils import np_utils
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import normalize
 
 """
 Fully connected neural network in keras.
@@ -57,7 +58,9 @@ if __name__ == '__main__':
 
     with open('pkl/Xs_mfcc.pkl', 'rb') as f:
         Xs_mfcc = pkl.load(f)
-    with open('pkl/Ys.pkl', 'rb') as f:
+    with open('pkl/ys_num.pkl', 'rb') as f:
         ys_num = pkl.load(f)
+
+    Xs_mfcc = normalize(Xs_mfcc, axis=0) # TODO does it make any difference?!
 
     main(Xs_mfcc, ys_num)
