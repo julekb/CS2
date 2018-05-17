@@ -8,7 +8,11 @@ from keras import regularizers
 from keras.utils import np_utils
 from sklearn import metrics
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import normalize
+from sklearn.preprocessing import normalize, LabelEncoder
+from sklearn.metrics import confusion_matrix
+from sklearn.utils import class_weight
+
+from functions import *
 
 """
 Fully connected neural network in keras.
@@ -46,11 +50,17 @@ def main(Xs_mfcc, ys_num):
     model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer='adam')
     # model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer='adam')
     # Now let us train our model
-    model.fit(X_train, y_train, batch_size=64, epochs=50, validation_data=(X_test, y_test), shuffle=True)
+
+    cw = class_weight.compute_class_weight('balanced', np.unique(binary_to_categorical(y_train)), binary_to_categorical(y_train))
+    model.fit(X_train, y_train, batch_size=32, epochs=100, validation_data=(X_test, y_test),
+        shuffle=True, class_weight=cw)
     # model.fit(X_train, y_train, batch_size=20, epochs=3, validation_data=(X_train, y_train))
 
     # TODO save trained model
-	
+    y_pred = model.predict(X_test)
+    
+    ### confusion matrix
+    print(confusion_matrix(binary_to_categorical(y_test), binary_to_categorical(y_pred)))
 
 if __name__ == '__main__':
 
