@@ -11,6 +11,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import normalize, LabelEncoder
 from sklearn.metrics import confusion_matrix
 from sklearn.utils import class_weight
+import matplotlib.pyplot as plt
 
 from functions import *
 
@@ -24,8 +25,8 @@ def main(Xs_mfcc, ys_num):
     X_train, X_test, y_train, y_test = train_test_split(Xs_mfcc, ys_num, test_size=0.2, random_state=42)
     
     # TODO this should be done before
-    X_train = X_train[:,7:40]
-    X_test = X_test[:,7:40]
+    X_train = X_train[:,7:35]
+    X_test = X_test[:,7:35]
 
 
     num_labels = y_train.shape[1]
@@ -34,13 +35,13 @@ def main(Xs_mfcc, ys_num):
     # build model
     model = Sequential()
 
-    model.add(Dense(50, input_shape=(X_train.shape[1],))) #256 ## , kernel_regularizer=regularizers.l2(0.1)
+    model.add(Dense(100, input_shape=(X_train.shape[1],))) #256 ## , kernel_regularizer=regularizers.l2(0.1)
     model.add(Activation('relu'))
     model.add(Dropout(0.2))
 
-    model.add(Dense(50))
+    model.add(Dense(110))
     model.add(Activation('relu'))
-    model.add(Dropout(0.1))
+    model.add(Dropout(0.2))
 
     model.add(Dense(num_labels))
     model.add(Activation('softmax'))
@@ -52,7 +53,7 @@ def main(Xs_mfcc, ys_num):
     # Now let us train our model
 
     cw = class_weight.compute_class_weight('balanced', np.unique(binary_to_categorical(y_train)), binary_to_categorical(y_train))
-    model.fit(X_train, y_train, batch_size=32, epochs=100, validation_data=(X_test, y_test),
+    history = model.fit(X_train, y_train, batch_size=8, epochs=100, validation_data=(X_test, y_test),
         shuffle=True, class_weight=cw)
     # model.fit(X_train, y_train, batch_size=20, epochs=3, validation_data=(X_train, y_train))
 
@@ -61,6 +62,23 @@ def main(Xs_mfcc, ys_num):
     
     ### confusion matrix
     print(confusion_matrix(binary_to_categorical(y_test), binary_to_categorical(y_pred)))
+
+    plt.plot(history.history['acc'])
+    plt.plot(history.history['val_acc'])
+    plt.title('model accuracy')
+    plt.ylabel('accuracy')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig('plot3.jpg')
+    # summarize history for loss
+    plt.clf()
+    plt.plot(history.history['loss'])
+    plt.plot(history.history['val_loss'])
+    plt.title('model loss')
+    plt.ylabel('loss')
+    plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    plt.savefig('plot32.jpg')
 
 if __name__ == '__main__':
 

@@ -1,6 +1,7 @@
 *.DS_Store
 *.pkl
 *.ipynb
+*.jpg
 
 wino_nagrania_final/
 data/
