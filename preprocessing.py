@@ -44,13 +44,14 @@ def audio_partition(audio, rate, script, classes):
 
     return np.array(X), np.array(Y)
 
+
 def extract_files(script_path, audio_path):
 
     script = pd.read_excel(script_path, index_col=0)
     # by default converted to mono and sr to 22050
     audio, _ = librosa.load(audio_path)
     return script, audio
-    
+
 
 """
 Data preprocessing and saving them to a pickle files so they can be opened in main.py.
@@ -63,7 +64,6 @@ FFT = True
 N_PROC = 4
 
 
-
 if __name__ == '__main__':
 
     rate = 22050
@@ -71,9 +71,9 @@ if __name__ == '__main__':
                'directive', 'affirmative', 'negative']
     # classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
 
-    ### Import data ###
+    # Import data
 
-    #"""
+    # """
     print('Data importing started.')
 
     path = 'wino_nagrania_final/'
@@ -104,8 +104,8 @@ if __name__ == '__main__':
     scripts = []
     audios = []
 
-    script_names = script_names[:10]
-    audio_name = audio_names[:10]
+    script_names = script_names
+    audio_name = audio_names
 
 
     for i, (script_name, audio_name) in enumerate(zip(script_names, audio_names)):
@@ -124,10 +124,11 @@ if __name__ == '__main__':
     except:
         print('Not saved.')
     #"""
-    with open('pkl/scripts.pkl', 'rb') as f:
-        scripts = pkl.load(f)
-    with open('pkl/audios.pkl', 'rb') as f:
-        audios = pkl.load(f)
+    # """
+    # with open('pkl/scripts.pkl', 'rb') as f:
+    #     scripts = pkl.load(f)
+    # with open('pkl/audios.pkl', 'rb') as f:
+    #     audios = pkl.load(f)
     
 
     # TODO
@@ -150,7 +151,7 @@ if __name__ == '__main__':
         ys = np.concatenate([ys, Y])
         print(i, ' done.')
 
-
+    #"""
     """
     pool = Pool(processes=N_PROC)
     args = np.array([[audio, rate, script, classes] for (script, audio) in zip(scripts2, audios2)])
@@ -185,7 +186,7 @@ if __name__ == '__main__':
     ys2 = np.delete(ys, empty_inds)
 
     if MFCC:
-        NUM_mfcc = 100
+        NUM_mfcc = 15
         Xs_mfcc = np.empty((len(Xs2), NUM_mfcc))
 
         # for i, X in np.ndenumerate(Xs2):
@@ -197,10 +198,10 @@ if __name__ == '__main__':
  
 
         print('Saving mfccs.')
-        # with open('pkl/Xs_mfccF.pkl', 'wb') as f:
-        #     pkl.dump(Xs_mfcc, f)
-        # with open('pkl/ys_num.pkl', 'wb') as f:
-        #     pkl.dump(ys_num, f)
+        with open('pkl/Xs_mfcc15.pkl', 'wb') as f:
+            pkl.dump(Xs_mfcc, f)
+        with open('pkl/ys_num.pkl', 'wb') as f:
+            pkl.dump(ys_num, f)
 
     if FFT:
         pass

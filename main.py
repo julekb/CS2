@@ -7,7 +7,7 @@ import numpy as np
 # from sklearn.model_selection import train_test_split
 
 
-### Import data
+# Import data
 
 # with open('pkl/Xs_mfcc.pkl', 'rb') as f:
 #     Xs_mfcc = pkl.load(f)
@@ -19,6 +19,6 @@ import numpy as np
 
 if __name__ == '__main__':
 
-	pass
+    pass
 
 

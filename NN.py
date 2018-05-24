@@ -20,17 +20,15 @@ Fully connected neural network in keras.
 Based on: https://www.analyticsvidhya.com/blog/2017/08/audio-voice-processing-deep-learning/
 """
 
+
 def main(Xs_mfcc, ys_num):
 
     X_train, X_test, y_train, y_test = train_test_split(Xs_mfcc, ys_num, test_size=0.2, random_state=42)
-    
     # TODO this should be done before
-    X_train = X_train[:,7:35]
-    X_test = X_test[:,7:35]
-
+    X_train = X_train[:, 7:35]
+    X_test = X_test[:, 7:35]
 
     num_labels = y_train.shape[1]
-    filter_size = 2
 
     # build model
     model = Sequential()
@@ -89,6 +87,6 @@ if __name__ == '__main__':
     with open('pkl/ys_num.pkl', 'rb') as f:
         ys_num = pkl.load(f)
 
-    Xs_mfcc = normalize(Xs_mfcc, axis=0) # TODO does it make any difference?!
+    Xs_mfcc = normalize(Xs_mfcc, axis=0)  # TODO does it make any difference?!
 
     main(Xs_mfcc, ys_num)
