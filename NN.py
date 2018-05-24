@@ -58,7 +58,7 @@ def main(Xs_mfcc, ys_num):
     # TODO save trained model
     y_pred = model.predict(X_test)
     
-    ### confusion matrix
+    # confusion matrix
     print(confusion_matrix(binary_to_categorical(y_test), binary_to_categorical(y_pred)))
 
     plt.plot(history.history['acc'])

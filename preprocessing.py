@@ -30,7 +30,10 @@ def audio_partition(audio, rate, script, classes):
 
     for c in classes:
         # should be with regrex and with checking AK2
-        subscript = script[script['AK'] == c]
+        r = re.compile('.*'+c)
+        mask = script['AK'].str.contains(r, regex=True)
+        mask = mask.fillna(False)
+        subscript = script[mask]
 
         for _, row in subscript.iterrows():
             start_time = row['begin']
@@ -53,27 +56,7 @@ def extract_files(script_path, audio_path):
     return script, audio
 
 
-"""
-Data preprocessing and saving them to a pickle files so they can be opened in main.py.
-
-"""
-
-# flags
-MFCC = True
-FFT = True
-N_PROC = 4
-
-
-if __name__ == '__main__':
-
-    rate = 22050
-    classes = ['informative', 'evaluative', 'argumentative',
-               'directive', 'affirmative', 'negative']
-    # classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
-
-    # Import data
-
-    # """
+def get_scripts(short=False):
     print('Data importing started.')
 
     path = 'wino_nagrania_final/'
@@ -100,13 +83,11 @@ if __name__ == '__main__':
 
     print('Filenames found.')
 
-
     scripts = []
     audios = []
-
-    script_names = script_names
-    audio_name = audio_names
-
+    if short:
+        script_names = script_names[:short]
+        audio_name = audio_names[:short]
 
     for i, (script_name, audio_name) in enumerate(zip(script_names, audio_names)):
         # if i > 1:
@@ -123,26 +104,12 @@ if __name__ == '__main__':
             pkl.dump(audios, f)
     except:
         print('Not saved.')
-    #"""
-    # """
-    # with open('pkl/scripts.pkl', 'rb') as f:
-    #     scripts = pkl.load(f)
-    # with open('pkl/audios.pkl', 'rb') as f:
-    #     audios = pkl.load(f)
-    
 
-    # TODO
-    # has to be done since there there is only one sample of the classes and it does not work
-    # it should work with regex later
-    
-    try:
-        scripts2 = np.delete(scripts, [10, 16])
-        audios2 = np.delete(audios, [10, 16])
-    except:
-        scripts2, audios2 = scripts, audios
+    return scripts, audios
 
+
+def get_parts():
     print('Audio partition started.')
-
 
     Xs, ys = np.array([]), np.array([])
     for i, (script, audio) in enumerate(zip(scripts2, audios2)):
@@ -150,18 +117,6 @@ if __name__ == '__main__':
         Xs = np.concatenate([Xs, X])
         ys = np.concatenate([ys, Y])
         print(i, ' done.')
-
-    #"""
-    """
-    pool = Pool(processes=N_PROC)
-    args = np.array([[audio, rate, script, classes] for (script, audio) in zip(scripts2, audios2)])
-    print(args[0])
-    results = pool.map_async(audio_partition, args)
-
-    pool.close()
-    pool.join()
-    print(results.get())
-    """
 
     print('Saving Xs and ys.')
     try:  # file can be to big pkl.loads or cPickle could help
@@ -171,8 +126,73 @@ if __name__ == '__main__':
             pkl.dump(ys, f)
     except:
         print('Not saved.')
-    
 
+    return Xs, ys
+
+
+def get_mfccs():
+    NUM_mfcc = 15
+    Xs_mfcc = np.empty((len(Xs2), NUM_mfcc))
+
+    for i, X in np.ndenumerate(Xs2):
+    #     X = np.fft.hfft(X) # Hermitian FFT gives a real output but the signal should have Hermitian symmetry?!
+        Xs_mfcc[i] = np.mean(librosa.feature.mfcc(y=X, sr=rate, n_mfcc=NUM_mfcc).T, axis=0)  # mean over time
+        #normalization
+        Xs_mfcc[i] = sklearn.preprocessing.scale(Xs_mfcc[i], axis=1)
+
+    lb = LabelBinarizer().fit(ys2)
+    ys_num = lb.transform(ys2)
+
+    print('Saving mfccs.')
+    with open('pkl/Xs_mfcc.pkl', 'wb') as f:
+        pkl.dump(Xs_mfcc, f)
+    with open('pkl/ys_num.pkl', 'wb') as f:
+        pkl.dump(ys_num, f)
+
+    return Xs_mfcc
+
+"""
+Data preprocessing and saving them to a pickle files so they can be opened in main.py.
+
+"""
+
+# flags
+MFCC = True
+FFT = True
+N_PROC = 4
+
+
+if __name__ == '__main__':
+
+    rate = 22050
+    classes = ['informative', 'evaluative', 'argumentative',
+               'directive', 'affirmative', 'negative']
+    # classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
+
+    # Import data
+
+    print('get_scripts')
+    scripts, audios = get_scripts()
+
+    # """
+    # with open('pkl/scripts.pkl', 'rb') as f:
+    #     scripts = pkl.load(f)
+    # with open('pkl/audios.pkl', 'rb') as f:
+    #     audios = pkl.load(f)
+
+    # TODO
+    # has to be done since there there is only one sample of the classes and it does not work
+    # it should work with regex later
+    # """
+    try:
+        scripts2 = np.delete(scripts, [10, 16])
+        audios2 = np.delete(audios, [10, 16])
+    except:
+        scripts2, audios2 = scripts, audios
+
+    print('get_parts')
+    Xs, ys = get_parts()
+"""
     print('loading data')
     with open('pkl/Xs.pkl', 'rb') as f:
         Xs = pkl.load(f)
@@ -185,26 +205,8 @@ if __name__ == '__main__':
     Xs2 = np.delete(Xs, empty_inds)
     ys2 = np.delete(ys, empty_inds)
 
-    if MFCC:
-        NUM_mfcc = 15
-        Xs_mfcc = np.empty((len(Xs2), NUM_mfcc))
 
-        # for i, X in np.ndenumerate(Xs2):
-        #     X = np.fft.hfft(X) # Hermitian FFT gives a real output but the signal should have Hermitian symmetry?!
-        #     Xs_mfcc[i] = np.mean(librosa.feature.mfcc(y=X, sr=rate, n_mfcc=NUM_mfcc).T, axis=0)
-
-        lb = LabelBinarizer().fit(ys2)
-        ys_num = lb.transform(ys2)
- 
-
-        print('Saving mfccs.')
-        with open('pkl/Xs_mfcc15.pkl', 'wb') as f:
-            pkl.dump(Xs_mfcc, f)
-        with open('pkl/ys_num.pkl', 'wb') as f:
-            pkl.dump(ys_num, f)
-
-    if FFT:
-        pass
+    print('get_mfccs')
+    Xs_mfcc = get_mfccs()
 
     # """
-
