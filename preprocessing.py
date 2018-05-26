@@ -140,8 +140,7 @@ def get_parts(scripts2, audios2):
     return Xs, ys
 
 
-def get_mfccs(Xs, ys):
-    NUM_mfcc = 15
+def get_mfccs(Xs, ys, NUM_mfcc):
     Xs_mfcc = np.empty((len(Xs), NUM_mfcc))
     empty_Xs = []
 
@@ -169,6 +168,33 @@ def get_mfccs(Xs, ys):
 
     return Xs_mfcc, ys_num
 
+def get_ffts(Xs, ys, NUM_ffts):
+    Xs_ffts = np.empty((len(Xs), NUM_ffts))
+    empty_Xs = []
+
+    for i, X in np.ndenumerate(Xs):
+    #     X = np.fft.hfft(X) # Hermitian FFT gives a real output but the signal should have Hermitian symmetry?!
+        
+        try: 
+            Xs_ffts[i] = np.fft.fft(y=X, n_mfcc=NUM_ffts)  # mean over time
+            #normalization
+            # Xs_mfcc[i] = scale(Xs_mfcc[i], axis=1)
+        except:
+            empty_Xs.append(i)
+
+
+    lb = LabelBinarizer().fit(ys)
+    ys_num = lb.transform(ys)
+    print(len(empty_Xs), len(Xs))
+    Xs = np.delete(Xs, empty_Xs, 0)
+    ys = np.delete(ys, empty_Xs, 0)
+    print('Saving ftts.')
+    with open('pkl/Xs_ffts.pkl', 'wb') as f:
+        pkl.dump(Xs_ffts, f)
+    with open('pkl/ys_num.pkl', 'wb') as f:
+        pkl.dump(ys_num, f)
+
+    return Xs_ffts, ys_num
 """
 Data preprocessing and saving them to a pickle files so they can be opened in main.py.
 
@@ -178,6 +204,8 @@ Data preprocessing and saving them to a pickle files so they can be opened in ma
 MFCC = True
 FFT = True
 N_PROC = 4
+NUM_mfcc = 50
+NUM_ffts = 100
 rate = 22050
 classes = ['informative', 'evaluative', 'argumentative',
            'directive', 'affirmative', 'negative']
@@ -235,10 +263,12 @@ if __name__ == '__main__':
     # empty_inds = [i for i, x in np.ndenumerate(Xs) if x.size == 0]
     # Xs2 = np.delete(Xs, empty_inds)
     # ys2 = np.delete(ys, empty_inds)
-
+    """
     print('get_mfccs')
-    Xs_mfcc, ys_num = get_mfccs(Xs, ys)
+    Xs_mfcc, ys_num = get_mfccs(Xs, ys, NUM_mfcc)
 
     print(Xs_mfcc.shape, ys_num.shape)
 
     # """
+    Xs_ftt, y_num = get_ffts(Xs, ys, NUM_ffts)
+

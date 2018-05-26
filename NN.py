@@ -3,7 +3,7 @@ import numpy as np
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
-from keras.optimizers import Adam
+from keras import optimizers
 from keras import regularizers
 from keras.utils import np_utils
 from sklearn import metrics
@@ -12,6 +12,7 @@ from sklearn.preprocessing import normalize, LabelEncoder
 from sklearn.metrics import confusion_matrix
 from sklearn.utils import class_weight
 import matplotlib.pyplot as plt
+from sklearn.feature_selection import VarianceThreshold
 
 from functions import *
 
@@ -21,7 +22,7 @@ Based on: https://www.analyticsvidhya.com/blog/2017/08/audio-voice-processing-de
 """
 
 
-def main(Xs_mfcc, ys_num):
+def neural_network(Xs_mfcc, ys_num, batch_size=32, epochs=100):
 
     X_train, X_test, y_train, y_test = train_test_split(Xs_mfcc, ys_num, test_size=0.2, random_state=42)
     # TODO this should be done before
@@ -45,13 +46,13 @@ def main(Xs_mfcc, ys_num):
     model.add(Activation('softmax'))
 
 
-    adam = Adam(lr=0.1)
-    model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer='adam')
+    optimizer = optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999)
+    model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer=optimizer)
     # model.compile(loss='categorical_crossentropy', metrics=['accuracy'], optimizer='adam')
     # Now let us train our model
 
     cw = class_weight.compute_class_weight('balanced', np.unique(binary_to_categorical(y_train)), binary_to_categorical(y_train))
-    history = model.fit(X_train, y_train, batch_size=32, epochs=500, validation_data=(X_test, y_test),
+    history = model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(X_test, y_test),
         shuffle=True, class_weight=cw)
     #  model.fit(X_train, y_train, batch_size=20, epochs=3, validation_data=(X_train, y_train))
 
@@ -67,7 +68,7 @@ def main(Xs_mfcc, ys_num):
     plt.ylabel('accuracy')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig('plot3.jpg')
+    plt.savefig('plot11.jpg')
     # summarize history for loss
     plt.clf()
     plt.plot(history.history['loss'])
@@ -76,17 +77,28 @@ def main(Xs_mfcc, ys_num):
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig('plot32.jpg')
+    plt.savefig('plot22.jpg')
+
+
+def feature_selection(Xs_mfcc, ys_num):
+    sel = VarianceThreshold(threshold=10)
+
+    Xs_mfcc = sel.fit_transform(Xs_mfcc)
+    print(Xs_mfcc.shape)
+
+    return sel.fit_transform(Xs_mfcc)
 
 if __name__ == '__main__':
 
     # loading files created with preprocessing.py
 
     with open('pkl/Xs_mfcc.pkl', 'rb') as f:
-        Xs_mfcc = pkl.load(f)
+        Xs_mfcc = pkl.load(f)[:,1:] #  should the first feature be deleted? it was somewhere written that the first one is just a coef
     with open('pkl/ys_num.pkl', 'rb') as f:
         ys_num = pkl.load(f)
-
+    
+    Xs_mfcc = feature_selection(Xs_mfcc, ys_num)
+    print(np.var(Xs_mfcc, axis=0))
     Xs_mfcc = normalize(Xs_mfcc, axis=0)  # TODO does it make any difference?!
-
-    main(Xs_mfcc, ys_num)
+    print(np.var(Xs_mfcc, axis=0))
+    neural_network(Xs_mfcc, ys_num, epochs=100)
