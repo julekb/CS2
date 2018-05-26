@@ -2,10 +2,8 @@ import numpy as np
 import pandas as pd
 import librosa
 import librosa.display
-import matplotlib.pyplot as plt
 from scipy.fftpack import fft, ifft
-from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelBinarizer
+from sklearn.preprocessing import LabelBinarizer, scale
 import pickle as pkl
 from os import listdir
 from os.path import isfile, join
@@ -97,28 +95,40 @@ def get_scripts(short=False):
         audios.append(audio)
         print (i+1, ' done')
 
-    try:  # file can be to big pkl.loads or cPickle could help
-        with open('pkl/scripts.pkl', 'wb') as f:
-            pkl.dump(scripts, f)
-        with open('pkl/audios.pkl', 'wb') as f:
-            pkl.dump(audios, f)
+    try:
+        with open('pkl/scripts_part1.pkl', 'wb') as f:
+            pkl.dump(scripts[:20], f)
+        with open('pkl/scripts_part2.pkl', 'wb') as f:
+            pkl.dump(scripts[20:], f)
+        with open('pkl/audios_part1.pkl', 'wb') as f:
+            pkl.dump(audios[:20], f)
+        with open('pkl/audios_part2.pkl', 'wb') as f:
+            pkl.dump(audios[20:], f)
     except:
         print('Not saved.')
 
     return scripts, audios
 
 
-def get_parts():
+def get_parts(scripts2, audios2):
     print('Audio partition started.')
 
     Xs, ys = np.array([]), np.array([])
     for i, (script, audio) in enumerate(zip(scripts2, audios2)):
+
         X, Y = audio_partition(audio, rate, script, classes)
-        Xs = np.concatenate([Xs, X])
+        print(X[0].shape, X.shape)
+
         ys = np.concatenate([ys, Y])
+        try:
+            Xs = np.concatenate([Xs, X])
+        except:
+            for x in X:
+                Xs = np.append(Xs, x)
         print(i, ' done.')
 
     print('Saving Xs and ys.')
+
     try:  # file can be to big pkl.loads or cPickle could help
         with open('pkl/Xs.pkl', 'wb') as f:
             pkl.dump(Xs, f)
@@ -130,26 +140,34 @@ def get_parts():
     return Xs, ys
 
 
-def get_mfccs():
+def get_mfccs(Xs, ys):
     NUM_mfcc = 15
-    Xs_mfcc = np.empty((len(Xs2), NUM_mfcc))
+    Xs_mfcc = np.empty((len(Xs), NUM_mfcc))
+    empty_Xs = []
 
-    for i, X in np.ndenumerate(Xs2):
+    for i, X in np.ndenumerate(Xs):
     #     X = np.fft.hfft(X) # Hermitian FFT gives a real output but the signal should have Hermitian symmetry?!
-        Xs_mfcc[i] = np.mean(librosa.feature.mfcc(y=X, sr=rate, n_mfcc=NUM_mfcc).T, axis=0)  # mean over time
-        #normalization
-        Xs_mfcc[i] = sklearn.preprocessing.scale(Xs_mfcc[i], axis=1)
+        
+        try: 
+            Xs_mfcc[i] = np.mean(librosa.feature.mfcc(y=X, sr=rate, n_mfcc=NUM_mfcc).T, axis=0)  # mean over time
+            #normalization
+            Xs_mfcc[i] = scale(Xs_mfcc[i], axis=1)
+        except:
+            empty_Xs.append(i)
 
-    lb = LabelBinarizer().fit(ys2)
-    ys_num = lb.transform(ys2)
 
+    lb = LabelBinarizer().fit(ys)
+    ys_num = lb.transform(ys)
+    print(len(empty_Xs), len(Xs))
+    Xs = np.delete(Xs, empty_Xs, 0)
+    ys = np.delete(ys, empty_Xs, 0)
     print('Saving mfccs.')
     with open('pkl/Xs_mfcc.pkl', 'wb') as f:
         pkl.dump(Xs_mfcc, f)
     with open('pkl/ys_num.pkl', 'wb') as f:
         pkl.dump(ys_num, f)
 
-    return Xs_mfcc
+    return Xs_mfcc, ys_num
 
 """
 Data preprocessing and saving them to a pickle files so they can be opened in main.py.
@@ -160,53 +178,67 @@ Data preprocessing and saving them to a pickle files so they can be opened in ma
 MFCC = True
 FFT = True
 N_PROC = 4
+rate = 22050
+classes = ['informative', 'evaluative', 'argumentative',
+           'directive', 'affirmative', 'negative']
 
 
 if __name__ == '__main__':
 
-    rate = 22050
-    classes = ['informative', 'evaluative', 'argumentative',
-               'directive', 'affirmative', 'negative']
+   
     # classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
 
     # Import data
 
-    print('get_scripts')
-    scripts, audios = get_scripts()
+    # print('get_scripts')
+    # scripts, audios = get_scripts()
 
-    # """
-    # with open('pkl/scripts.pkl', 'rb') as f:
-    #     scripts = pkl.load(f)
-    # with open('pkl/audios.pkl', 'rb') as f:
-    #     audios = pkl.load(f)
+
+    #  """
+
+    with open('pkl/scripts_part1.pkl', 'rb') as f:
+        scripts1 = pkl.load(f)
+    with open('pkl/scripts_part2.pkl', 'rb') as f:
+        scripts2 = pkl.load(f)
+    with open('pkl/audios_part1.pkl', 'rb') as f:
+        audios1 = pkl.load(f)
+    with open('pkl/audios_part2.pkl', 'rb') as f:
+        audios2 = pkl.load(f)
+
+    scripts = np.hstack([scripts1, scripts2])
+    audios = np.hstack([audios1, audios2])
 
     # TODO
     # has to be done since there there is only one sample of the classes and it does not work
-    # it should work with regex later
-    # """
+
     try:
-        scripts2 = np.delete(scripts, [10, 16])
-        audios2 = np.delete(audios, [10, 16])
+        scripts2 = np.delete(scripts, [33]) #  10, 16
+        audios2 = np.delete(audios, [33])
     except:
         scripts2, audios2 = scripts, audios
 
+    # scripts2, audios2 = scripts2[:36], audios2[:36]
     print('get_parts')
-    Xs, ys = get_parts()
-"""
+    Xs, ys = get_parts(scripts2, audios2)
+    print(Xs.shape, ys.shape)
+    #  """
+
     print('loading data')
     with open('pkl/Xs.pkl', 'rb') as f:
         Xs = pkl.load(f)
     with open('pkl/Ys.pkl', 'rb') as f:
         ys = pkl.load(f)
 
+    print(Xs.shape, ys.shape)
     # delete  empty rows
 
-    empty_inds = [i for i, x in np.ndenumerate(Xs) if x.size == 0]
-    Xs2 = np.delete(Xs, empty_inds)
-    ys2 = np.delete(ys, empty_inds)
-
+    # empty_inds = [i for i, x in np.ndenumerate(Xs) if x.size == 0]
+    # Xs2 = np.delete(Xs, empty_inds)
+    # ys2 = np.delete(ys, empty_inds)
 
     print('get_mfccs')
-    Xs_mfcc = get_mfccs()
+    Xs_mfcc, ys_num = get_mfccs(Xs, ys)
+
+    print(Xs_mfcc.shape, ys_num.shape)
 
     # """

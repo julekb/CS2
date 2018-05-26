@@ -25,8 +25,8 @@ def main(Xs_mfcc, ys_num):
 
     X_train, X_test, y_train, y_test = train_test_split(Xs_mfcc, ys_num, test_size=0.2, random_state=42)
     # TODO this should be done before
-    X_train = X_train[:, 7:35]
-    X_test = X_test[:, 7:35]
+    # X_train = X_train[:, 7:35]
+    # X_test = X_test[:, 7:35]
 
     num_labels = y_train.shape[1]
 
@@ -51,13 +51,13 @@ def main(Xs_mfcc, ys_num):
     # Now let us train our model
 
     cw = class_weight.compute_class_weight('balanced', np.unique(binary_to_categorical(y_train)), binary_to_categorical(y_train))
-    history = model.fit(X_train, y_train, batch_size=8, epochs=100, validation_data=(X_test, y_test),
+    history = model.fit(X_train, y_train, batch_size=32, epochs=500, validation_data=(X_test, y_test),
         shuffle=True, class_weight=cw)
-    # model.fit(X_train, y_train, batch_size=20, epochs=3, validation_data=(X_train, y_train))
+    #  model.fit(X_train, y_train, batch_size=20, epochs=3, validation_data=(X_train, y_train))
 
     # TODO save trained model
     y_pred = model.predict(X_test)
-    
+
     # confusion matrix
     print(confusion_matrix(binary_to_categorical(y_test), binary_to_categorical(y_pred)))
 

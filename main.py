@@ -15,19 +15,5 @@ import numpy as np
 #     ys_num = pkl.load(f)
 
 
-import re
-import pickle as pkl
-with open('pkl/scripts.pkl', 'rb') as f:
-    script = pkl.load(f)
-
 if __name__ == '__main__':
-    c = 'evaluative'
-    script = script[22]
-    r = re.compile('.*'+c)
-
-   
-    print(script[script['AK'].str.contains(r, regex=True)])
-
     pass
-
-
