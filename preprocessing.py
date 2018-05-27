@@ -88,8 +88,7 @@ def get_scripts(short=False):
         audio_name = audio_names[:short]
 
     for i, (script_name, audio_name) in enumerate(zip(script_names, audio_names)):
-        # if i > 1:
-        #     break
+
         script, audio = extract_files(script_path+script_name, path+audio_name)
         scripts.append(script)
         audios.append(audio)
@@ -110,7 +109,7 @@ def get_scripts(short=False):
     return scripts, audios
 
 
-def get_parts(scripts2, audios2):
+def get_parts(scripts2, audios2, name=''):
     print('Audio partition started.')
 
     Xs, ys = np.array([]), np.array([])
@@ -130,9 +129,9 @@ def get_parts(scripts2, audios2):
     print('Saving Xs and ys.')
 
     try:  # file can be to big pkl.loads or cPickle could help
-        with open('pkl/Xs.pkl', 'wb') as f:
+        with open('pkl/Xs'+name+'.pkl', 'wb') as f:
             pkl.dump(Xs, f)
-        with open('pkl/Ys.pkl', 'wb') as f:
+        with open('pkl/Ys'+name+'.pkl', 'wb') as f:
             pkl.dump(ys, f)
     except:
         print('Not saved.')
@@ -140,7 +139,7 @@ def get_parts(scripts2, audios2):
     return Xs, ys
 
 
-def get_mfccs(Xs, ys, NUM_mfcc):
+def get_mfccs(Xs, ys, NUM_mfcc, name=''):
     Xs_mfcc = np.empty((len(Xs), NUM_mfcc))
     empty_Xs = []
 
@@ -161,14 +160,14 @@ def get_mfccs(Xs, ys, NUM_mfcc):
     Xs = np.delete(Xs, empty_Xs, 0)
     ys = np.delete(ys, empty_Xs, 0)
     print('Saving mfccs.')
-    with open('pkl/Xs_mfcc.pkl', 'wb') as f:
+    with open('pkl/Xs_mfcc'+name+'.pkl', 'wb') as f:
         pkl.dump(Xs_mfcc, f)
-    with open('pkl/ys_num.pkl', 'wb') as f:
+    with open('pkl/ys_num'+name+'.pkl', 'wb') as f:
         pkl.dump(ys_num, f)
 
     return Xs_mfcc, ys_num
 
-def get_ffts(Xs, ys, NUM_ffts):
+def get_ffts(Xs, ys, NUM_ffts, name=''):
     Xs_ffts = np.empty((len(Xs), NUM_ffts))
     empty_Xs = []
 
@@ -189,41 +188,43 @@ def get_ffts(Xs, ys, NUM_ffts):
     Xs = np.delete(Xs, empty_Xs, 0)
     ys = np.delete(ys, empty_Xs, 0)
     print('Saving ftts.')
-    with open('pkl/Xs_ffts.pkl', 'wb') as f:
+    with open('pkl/Xs_ffts'+name+'.pkl', 'wb') as f:
         pkl.dump(Xs_ffts, f)
-    with open('pkl/ys_num.pkl', 'wb') as f:
+    with open('pkl/ys_num'+name+'.pkl', 'wb') as f:
         pkl.dump(ys_num, f)
 
     return Xs_ffts, ys_num
+
+
+def get_in_range(*args, start=0, end=-1):
+    return tuple([l[start:end] for l in args])
 """
 Data preprocessing and saving them to a pickle files so they can be opened in main.py.
 
 """
 
-# flags
 MFCC = True
 FFT = True
 N_PROC = 4
 NUM_mfcc = 50
-NUM_ffts = 100
+NUM_ffts = 75
 rate = 22050
-classes = ['informative', 'evaluative', 'argumentative',
-           'directive', 'affirmative', 'negative']
+name = '_all'
+
+classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
 
 
 if __name__ == '__main__':
 
-   
-    # classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
 
     # Import data
 
-    # print('get_scripts')
-    # scripts, audios = get_scripts()
+    print('get_scripts')
+    scripts, audios = get_scripts()
 
 
     #  """
-
+    
     with open('pkl/scripts_part1.pkl', 'rb') as f:
         scripts1 = pkl.load(f)
     with open('pkl/scripts_part2.pkl', 'rb') as f:
@@ -235,40 +236,31 @@ if __name__ == '__main__':
 
     scripts = np.hstack([scripts1, scripts2])
     audios = np.hstack([audios1, audios2])
-
-    # TODO
-    # has to be done since there there is only one sample of the classes and it does not work
-
-    try:
-        scripts2 = np.delete(scripts, [33]) #  10, 16
-        audios2 = np.delete(audios, [33])
-    except:
-        scripts2, audios2 = scripts, audios
-
-    # scripts2, audios2 = scripts2[:36], audios2[:36]
+    
+    # """
     print('get_parts')
-    Xs, ys = get_parts(scripts2, audios2)
+    scripts, audios = get_in_range(scripts, audios)
+    Xs, ys = get_parts(scripts, audios, name=name)
     print(Xs.shape, ys.shape)
-    #  """
 
+    #  """
+    
     print('loading data')
-    with open('pkl/Xs.pkl', 'rb') as f:
+    with open('pkl/Xs'+name+'.pkl', 'rb') as f:
         Xs = pkl.load(f)
-    with open('pkl/Ys.pkl', 'rb') as f:
+    with open('pkl/Ys'+name+'.pkl', 'rb') as f:
         ys = pkl.load(f)
 
     print(Xs.shape, ys.shape)
+    # Xs, ys = get_in_range(Xs, ys, start=0, end=40)
     # delete  empty rows
 
     # empty_inds = [i for i, x in np.ndenumerate(Xs) if x.size == 0]
     # Xs2 = np.delete(Xs, empty_inds)
     # ys2 = np.delete(ys, empty_inds)
-    """
+    
     print('get_mfccs')
-    Xs_mfcc, ys_num = get_mfccs(Xs, ys, NUM_mfcc)
-
-    print(Xs_mfcc.shape, ys_num.shape)
-
-    # """
-    Xs_ftt, y_num = get_ffts(Xs, ys, NUM_ffts)
+    Xs_mfcc, ys_num = get_mfccs(Xs, ys, NUM_mfcc, name)
+    print('get_ftts')
+    Xs_ftt, y_num = get_ffts(Xs, ys, NUM_ffts, name)
 
