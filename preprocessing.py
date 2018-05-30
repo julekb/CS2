@@ -2,13 +2,11 @@ import numpy as np
 import pandas as pd
 import librosa
 import librosa.display
-from scipy.fftpack import fft, ifft
 from sklearn.preprocessing import LabelBinarizer, scale
 import pickle as pkl
 from os import listdir
 from os.path import isfile, join
 import re
-from multiprocessing import Pool
 
 
 def audio_partition(audio, rate, script, classes):
@@ -28,7 +26,7 @@ def audio_partition(audio, rate, script, classes):
 
     for c in classes:
         # should be with regrex and with checking AK2
-        r = re.compile('.*'+c)
+        r = re.compile('.*' + c)
         mask = script['AK'].str.contains(r, regex=True)
         mask = mask.fillna(False)
         subscript = script[mask]
@@ -92,7 +90,7 @@ def get_scripts(short=False):
         script, audio = extract_files(script_path+script_name, path+audio_name)
         scripts.append(script)
         audios.append(audio)
-        print (i+1, ' done')
+        print (i + 1, ' done')
 
     try:
         with open('pkl/scripts_part1.pkl', 'wb') as f:
@@ -124,14 +122,25 @@ def get_parts(scripts2, audios2, name=''):
         except:
             for x in X:
                 Xs = np.append(Xs, x)
+
         print(i, ' done.')
+
+    # getting rid of empty lists:
+    empty_inds = []
+    for i, x in enumerate(Xs):
+        if x.size == 0:
+            empty_inds.append(i)
+    empty_inds.reverse()
+    for i in empty_inds:
+        Xs = np.delete(Xs, i)
+        ys = np.delete(ys, i)
 
     print('Saving Xs and ys.')
 
     try:  # file can be to big pkl.loads or cPickle could help
-        with open('pkl/Xs'+name+'.pkl', 'wb') as f:
+        with open('pkl/Xs' + name + '.pkl', 'wb') as f:
             pkl.dump(Xs, f)
-        with open('pkl/Ys'+name+'.pkl', 'wb') as f:
+        with open('pkl/Ys' + name + '.pkl', 'wb') as f:
             pkl.dump(ys, f)
     except:
         print('Not saved.')
@@ -154,8 +163,9 @@ def get_mfccs(Xs, ys, NUM_mfcc, name=''):
             empty_Xs.append(i)
 
 
-    lb = LabelBinarizer().fit(ys)
-    ys_num = lb.transform(ys)
+    # lb = LabelBinarizer().fit(ys)
+    # ys_num = lb.transform(ys)
+    ys_num = ys
     print(len(empty_Xs), len(Xs))
     Xs = np.delete(Xs, empty_Xs, 0)
     ys = np.delete(ys, empty_Xs, 0)
@@ -188,9 +198,9 @@ def get_ffts(Xs, ys, NUM_ffts, name=''):
     Xs = np.delete(Xs, empty_Xs, 0)
     ys = np.delete(ys, empty_Xs, 0)
     print('Saving ftts.')
-    with open('pkl/Xs_ffts'+name+'.pkl', 'wb') as f:
+    with open('pkl/Xs_ffts' + name + '.pkl', 'wb') as f:
         pkl.dump(Xs_ffts, f)
-    with open('pkl/ys_num'+name+'.pkl', 'wb') as f:
+    with open('pkl/ys_num' + name + '.pkl', 'wb') as f:
         pkl.dump(ys_num, f)
 
     return Xs_ffts, ys_num
@@ -209,22 +219,21 @@ N_PROC = 4
 NUM_mfcc = 50
 NUM_ffts = 75
 rate = 22050
-name = '_all'
+
 
 classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
+excluded_classes = ['negative', 'directive', 'affirmative']
+name = '-' + '-'.join(excluded_classes)
 
 
 if __name__ == '__main__':
 
-
-    # Import data
-
-    print('get_scripts')
+    #  Import data
+    """print('get_scripts')
     scripts, audios = get_scripts()
 
-
     #  """
-    
+
     with open('pkl/scripts_part1.pkl', 'rb') as f:
         scripts1 = pkl.load(f)
     with open('pkl/scripts_part2.pkl', 'rb') as f:
@@ -238,13 +247,13 @@ if __name__ == '__main__':
     audios = np.hstack([audios1, audios2])
     
     # """
+    # """
     print('get_parts')
     scripts, audios = get_in_range(scripts, audios)
     Xs, ys = get_parts(scripts, audios, name=name)
     print(Xs.shape, ys.shape)
 
     #  """
-    
     print('loading data')
     with open('pkl/Xs'+name+'.pkl', 'rb') as f:
         Xs = pkl.load(f)
@@ -252,15 +261,16 @@ if __name__ == '__main__':
         ys = pkl.load(f)
 
     print(Xs.shape, ys.shape)
-    # Xs, ys = get_in_range(Xs, ys, start=0, end=40)
-    # delete  empty rows
 
-    # empty_inds = [i for i, x in np.ndenumerate(Xs) if x.size == 0]
-    # Xs2 = np.delete(Xs, empty_inds)
-    # ys2 = np.delete(ys, empty_inds)
-    
+    for excluded in excluded_classes:
+
+        mask = ys != excluded
+        ys = ys[mask]
+        Xs = Xs[mask]
+
+    # Xs, ys = get_in_range(Xs, ys, start=0, end=40)
+
     print('get_mfccs')
     Xs_mfcc, ys_num = get_mfccs(Xs, ys, NUM_mfcc, name)
-    print('get_ftts')
-    Xs_ftt, y_num = get_ffts(Xs, ys, NUM_ffts, name)
-
+    # print('get_ftts')
+    # Xs_ftt, y_num = get_ffts(Xs, ys, NUM_ffts, name)
