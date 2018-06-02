@@ -2,11 +2,13 @@ import numpy as np
 import pandas as pd
 import librosa
 import librosa.display
-from sklearn.preprocessing import LabelBinarizer, scale
+from sklearn.preprocessing import LabelBinarizer
+from scipy.signal import butter, lfilter
 import pickle as pkl
 from os import listdir
 from os.path import isfile, join
 import re
+import funs as f
 
 
 def audio_partition(audio, rate, script, classes):
@@ -52,7 +54,7 @@ def extract_files(script_path, audio_path):
     return script, audio
 
 
-def get_scripts(short=False):
+def get_scripts(short=False, name=''):
     print('Data importing started.')
 
     path = 'wino_nagrania_final/'
@@ -93,13 +95,13 @@ def get_scripts(short=False):
         print (i + 1, ' done')
 
     try:
-        with open('pkl/scripts_part1.pkl', 'wb') as f:
+        with open('pkl/scripts_part1' + name + '.pkl', 'wb') as f:
             pkl.dump(scripts[:20], f)
-        with open('pkl/scripts_part2.pkl', 'wb') as f:
+        with open('pkl/scripts_part2' + name + '.pkl', 'wb') as f:
             pkl.dump(scripts[20:], f)
-        with open('pkl/audios_part1.pkl', 'wb') as f:
+        with open('pkl/audios_part1' + name + '.pkl', 'wb') as f:
             pkl.dump(audios[:20], f)
-        with open('pkl/audios_part2.pkl', 'wb') as f:
+        with open('pkl/audios_part2' + name + '.pkl', 'wb') as f:
             pkl.dump(audios[20:], f)
     except:
         print('Not saved.')
@@ -107,7 +109,7 @@ def get_scripts(short=False):
     return scripts, audios
 
 
-def get_parts(scripts2, audios2, name=''):
+def get_parts(scripts2, audios2, name='', save=True):
     print('Audio partition started.')
 
     Xs, ys = np.array([]), np.array([])
@@ -116,12 +118,14 @@ def get_parts(scripts2, audios2, name=''):
         X, Y = audio_partition(audio, rate, script, classes)
         print(X[0].shape, X.shape)
 
-        ys = np.concatenate([ys, Y])
         try:
             Xs = np.concatenate([Xs, X])
+            ys = np.concatenate([ys, Y])
         except:
             for x in X:
+
                 Xs = np.append(Xs, x)
+                ys = np.concatenate([ys, Y])
 
         print(i, ' done.')
 
@@ -135,20 +139,43 @@ def get_parts(scripts2, audios2, name=''):
         Xs = np.delete(Xs, i)
         ys = np.delete(ys, i)
 
-    print('Saving Xs and ys.')
+    if save:
+        print('Saving Xs and ys.')
 
-    try:  # file can be to big pkl.loads or cPickle could help
-        with open('pkl/Xs' + name + '.pkl', 'wb') as f:
-            pkl.dump(Xs, f)
-        with open('pkl/Ys' + name + '.pkl', 'wb') as f:
-            pkl.dump(ys, f)
-    except:
-        print('Not saved.')
+        try:  # file can be to big pkl.loads or cPickle could help
+            with open('pkl/Xs' + name + '.pkl', 'wb') as f:
+                pkl.dump(Xs, f)
+            with open('pkl/Ys' + name + '.pkl', 'wb') as f:
+                pkl.dump(ys, f)
+        except:
+            print('Not saved.')
 
     return Xs, ys
 
 
-def get_mfccs(Xs, ys, NUM_mfcc, name=''):
+def get_filtered(Xs, lowcut=100, highcut=2000, rate=22050, name='', save=True):
+
+    Xs_filtered = []
+
+    for i, X in np.ndenumerate(Xs):
+        # Xs_filtered = np.append(Xs_filtered, butter_bandpass_filter(data=X, lowcut=lowcut, highcut=highcut, fs=rate))
+        Xs_filtered.append(butter_bandpass_filter(data=X, lowcut=lowcut, highcut=highcut, fs=rate))
+
+
+        if i[0] % 100 == 0:
+            print(i, 'done', len(Xs_filtered))
+
+
+    if save:
+        print('Saving filtered.')
+        with open('pkl/Xs_filtered'+name+'.pkl', 'wb') as f:
+            pkl.dump(Xs_filtered, f)
+
+
+    return Xs_filtered
+
+
+def get_mfccs(Xs, num_mfcc, name='', save=True):
     Xs_mfcc = np.empty((len(Xs), NUM_mfcc))
     empty_Xs = []
 
@@ -156,28 +183,19 @@ def get_mfccs(Xs, ys, NUM_mfcc, name=''):
     #     X = np.fft.hfft(X) # Hermitian FFT gives a real output but the signal should have Hermitian symmetry?!
         
         try: 
-            Xs_mfcc[i] = np.mean(librosa.feature.mfcc(y=X, sr=rate, n_mfcc=NUM_mfcc).T, axis=0)  # mean over time
-            #normalization
-            Xs_mfcc[i] = scale(Xs_mfcc[i], axis=1)
+            Xs_mfcc[i] = np.mean(librosa.feature.mfcc(y=X, sr=rate, n_mfcc=num_mfcc).T, axis=0)  # mean over time
         except:
+            print('EMPTY!')
             empty_Xs.append(i)
 
+    if save:
+        print('Saving mfccs.')
+        with open('pkl/Xs_mfcc'+name+'.pkl', 'wb') as f:
+            pkl.dump(Xs_mfcc, f)
 
-    # lb = LabelBinarizer().fit(ys)
-    # ys_num = lb.transform(ys)
-    ys_num = ys
-    print(len(empty_Xs), len(Xs))
-    Xs = np.delete(Xs, empty_Xs, 0)
-    ys = np.delete(ys, empty_Xs, 0)
-    print('Saving mfccs.')
-    with open('pkl/Xs_mfcc'+name+'.pkl', 'wb') as f:
-        pkl.dump(Xs_mfcc, f)
-    with open('pkl/ys_num'+name+'.pkl', 'wb') as f:
-        pkl.dump(ys_num, f)
+    return Xs_mfcc
 
-    return Xs_mfcc, ys_num
-
-def get_ffts(Xs, ys, NUM_ffts, name=''):
+def get_ffts(Xs, ys, num_ffts, name='', save=True):
     Xs_ffts = np.empty((len(Xs), NUM_ffts))
     empty_Xs = []
 
@@ -185,7 +203,7 @@ def get_ffts(Xs, ys, NUM_ffts, name=''):
     #     X = np.fft.hfft(X) # Hermitian FFT gives a real output but the signal should have Hermitian symmetry?!
         
         try: 
-            Xs_ffts[i] = np.fft.fft(y=X, n_mfcc=NUM_ffts)  # mean over time
+            Xs_ffts[i] = np.fft.fft(y=X, n_mfcc=num_ffts)  # mean over time
             #normalization
             # Xs_mfcc[i] = scale(Xs_mfcc[i], axis=1)
         except:
@@ -197,13 +215,30 @@ def get_ffts(Xs, ys, NUM_ffts, name=''):
     print(len(empty_Xs), len(Xs))
     Xs = np.delete(Xs, empty_Xs, 0)
     ys = np.delete(ys, empty_Xs, 0)
-    print('Saving ftts.')
-    with open('pkl/Xs_ffts' + name + '.pkl', 'wb') as f:
-        pkl.dump(Xs_ffts, f)
-    # with open('pkl/ys_num' + name + '.pkl', 'wb') as f:
-    #     pkl.dump(ys_num, f)
+    if save:
+        print('Saving ftts.')
+        with open('pkl/Xs_ffts' + name + '.pkl', 'wb') as f:
+            pkl.dump(Xs_ffts, f)
+        # with open('pkl/ys_num' + name + '.pkl', 'wb') as f:
+        #     pkl.dump(ys_num, f)
 
     return Xs_ffts, ys_num
+
+def get_excluded(Xs, ys, excluded_classes, save=True):
+    
+    for excluded in excluded_classes:
+        print(len(ys), len(Xs))
+
+        mask = ys != excluded
+        ys = ys[mask]
+        Xs = Xs[mask]
+    if save:
+        print('Saving excluded.')
+        with open('pkl/Xs_exlcuded-' + '-'.join(excluded_classes) + '.pkl', 'wb') as f:
+            pkl.dump(Xs, f)
+        with open('pkl/ys_exlcuded-' + '-'.join(excluded_classes) + '.pkl', 'wb') as f:
+            pkl.dump(ys, f)
+ 
 
 
 def get_in_range(*args, start=0, end=-1):
@@ -213,6 +248,17 @@ def get_in_range(*args, start=0, end=-1):
 def generate_data(Xs):
     return Xs + np.random.normal(0, 1, Xs.shape)
 
+def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+    """
+    source: https://gist.github.com/andrewgiessel/4514186
+    """
+    nyq = 0.5 * fs
+    low = lowcut / nyq
+    high = highcut / nyq
+
+    b, a = butter(order, [low, high], btype='band')
+    y = lfilter(b, a, data)
+    return y
 
 
 
@@ -221,9 +267,7 @@ Data preprocessing and saving them to a pickle files so they can be opened in ma
 
 """
 
-MFCC = True
-FFT = True
-N_PROC = 4
+
 NUM_mfcc = 50
 NUM_ffts = 75
 rate = 22050
@@ -232,15 +276,16 @@ rate = 22050
 classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
 excluded_classes = ['negative', 'directive', 'affirmative']
 name = '-' + '-'.join(excluded_classes)
+name_all = '_all'
 
 
 if __name__ == '__main__':
 
     #  Import data
-    """print('get_scripts')
-    scripts, audios = get_scripts()
 
-    #  """
+    print('get_scripts')
+    scripts, audios = get_scripts(name=name_all)
+
 
     with open('pkl/scripts_part1.pkl', 'rb') as f:
         scripts1 = pkl.load(f)
@@ -254,31 +299,52 @@ if __name__ == '__main__':
     scripts = np.hstack([scripts1, scripts2])
     audios = np.hstack([audios1, audios2])
     
-    # """
-    # """
+
+   
     print('get_parts')
-    scripts, audios = get_in_range(scripts, audios)
-    Xs, ys = get_parts(scripts, audios, name=name)
+    # scripts, audios = get_in_range(scripts, audios)
+    Xs, ys = get_parts(scripts, audios, name=name_all)
     print(Xs.shape, ys.shape)
 
-    #  """
+    # """
+    """
     print('loading data')
     with open('pkl/Xs'+name+'.pkl', 'rb') as f:
         Xs = pkl.load(f)
     with open('pkl/Ys'+name+'.pkl', 'rb') as f:
         ys = pkl.load(f)
+    Xs_filtered = get_filtered(Xs, name=name_all)
+    """
+    
+    # print(Xs.shape, ys.shape)
+    """
+  
+    Xs = f.load_Xs_filtered()
+    ys = f.load_ys()
 
-    print(Xs.shape, ys.shape)
 
-    for excluded in excluded_classes:
+    
 
-        mask = ys != excluded
-        ys = ys[mask]
-        Xs = Xs[mask]
-
-    # Xs, ys = get_in_range(Xs, ys, start=0, end=40)
+  
 
     print('get_mfccs')
-    Xs_mfcc, ys_num = get_mfccs(Xs, ys, NUM_mfcc, name)
+    Xs_mfcc, ys_num = get_mfccs(Xs, ys, NUM_mfcc, name_all)
     print('get_ftts')
-    Xs_ftt, y_num = get_ffts(Xs, ys, NUM_ffts, name)
+    Xs_ftt, y_num = get_ffts(Xs, ys, NUM_ffts, name_all) 
+    """
+
+    # Xs_filtered = f.load_Xs_filtered('_3507')
+    # ys = f.load_ys()
+    # print('len', len(Xs_filtered), len(ys))
+
+    # Xs_mfcc, ys_num = get_mfccs(Xs_filtered, ys, NUM_mfcc, name_all)
+
+    # print('len', len(Xs_mfcc), len(ys_num))
+
+
+    # print(len(Xs))
+
+    Xs_mfcc = f.load_Xs_mfcc()
+    ys = f.load_Xs_mfcc()
+
+    get_excluded(Xs_mfcc, ys, excluded_classes=excluded_classes)

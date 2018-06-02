@@ -6,9 +6,6 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Convolution2D, MaxPooling2D
 from keras import optimizers
-from keras import regularizers
-from keras.utils import np_utils
-from sklearn import metrics
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import normalize, LabelEncoder
 from sklearn.metrics import confusion_matrix
@@ -129,7 +126,7 @@ def encode_ys(ys_num):
 
 if __name__ == '__main__':
 
-    
+
     name = '-negative-directive-affirmative'
 
     # loading files created with preprocessing.py
@@ -139,8 +136,9 @@ if __name__ == '__main__':
     with open('pkl/ys_num' + name + '.pkl', 'rb') as f:
         ys_num = pkl.load(f)
 
-    # Xs_mfcc = feature_selection(Xs_mfcc, ys_num, 10)
-    Xs_mfcc = Xs_mfcc[:,10:50]
+
+    Xs_mfcc = feature_selection(Xs_mfcc, ys_num, 10)
+    # Xs_mfcc = Xs_mfcc[:,10:50]
 
     # print(np.var(Xs_mfcc, axis=0))
     Xs_mfcc = normalize(Xs_mfcc, axis=0)  # TODO does it make any difference?!
@@ -155,6 +153,7 @@ if __name__ == '__main__':
     print(Counter(ys_num))
     print(naive_categorization(ys_num))
     ys_num = encode_ys(ys_num)
+    print(ys_num)
 
     print(Xs_mfcc.shape, ys_num.shape)
     neural_network(Xs_mfcc, ys_num, **setup)

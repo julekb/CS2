@@ -1,19 +1,21 @@
-import numpy as np
-# import pandas as pd
-# import librosa
-# import librosa.display
-# import matplotlib.pyplot as plt
-# from scipy.fftpack import fft, ifft
-# from sklearn.model_selection import train_test_split
-
-
-# Import data
-
-# with open('pkl/Xs_mfcc.pkl', 'rb') as f:
-#     Xs_mfcc = pkl.load(f)
-# with open('pkl/Ys.pkl', 'rb') as f:
-#     ys_num = pkl.load(f)
+import preprocessing as prep
 
 
 if __name__ == '__main__':
-    pass
+
+    NUM_mfcc = 50
+    classes = ['informative', 'evaluative', 'argumentative', 'directive', 'elicitative', 'affirmative', 'negative']
+    excluded_classes = ['negative', 'directive', 'affirmative']
+
+    # preprocessing
+
+    scripts, audios = prep.get_scripts()
+    Xs, ys = prep.get_parts(scripts, audios, save=False)
+    Xs = prep.get_filtered(Xs, save=False)
+    Xs_mfcc = prep.get_mfccs(Xs, NUM_mfcc, name='_all', save=True)
+
+    print('Data preprocessed.')
+
+    # train, test set split
+
+    # Neural network
