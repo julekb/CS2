@@ -20,6 +20,7 @@ from collections import Counter
 from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 
 from functions import *
+from preprocessing import generate_data
 
 """
 Fully connected neural network in keras.
@@ -30,12 +31,19 @@ Based on: https://www.analyticsvidhya.com/blog/2017/08/audio-voice-processing-de
 def neural_network(Xs_mfcc, ys_num, batch_size=32, epochs=100,
     learning_rate=0.01, patience=10):
 
+    seed(42)
+    set_random_seed(41)
+
     X_train, X_test, y_train, y_test = train_test_split(Xs_mfcc, ys_num, test_size=0.2, random_state=43)
     # TODO this should be done before
     # X_train = X_train[:, 7:35]
     # X_test = X_test[:, 7:35]
 
+    # X_train = np.vstack([X_train, generate_data(X_train)])
+    # y_train = np.vstack([y_train, y_train])
     num_labels = y_train.shape[1]
+    print(X_train.shape)
+    print(y_train.shape)
 
     # build model
     model = Sequential()
@@ -100,7 +108,17 @@ def feature_selection(Xs_mfcc, ys_num, threshold):
 
 
 def naive_categorization(ys_num):
-    return Counter(ys_num)
+    ys_dict = Counter(ys_num)
+    max_value = max(ys_dict.values())
+    max_key = ''
+    for key, value in ys_dict.items():
+        if value == max_value:
+            max_key = key
+            break
+    values_sum = sum(ys_dict.values())
+    print(max_value, values_sum)
+    print('Most common: %s with %f probability of occurance' % (max_key, max_value / values_sum))
+
 
 
 def encode_ys(ys_num):
@@ -111,8 +129,7 @@ def encode_ys(ys_num):
 
 if __name__ == '__main__':
 
-    seed(42)
-    set_random_seed(41)
+    
     name = '-negative-directive-affirmative'
 
     # loading files created with preprocessing.py
@@ -123,6 +140,7 @@ if __name__ == '__main__':
         ys_num = pkl.load(f)
 
     # Xs_mfcc = feature_selection(Xs_mfcc, ys_num, 10)
+    Xs_mfcc = Xs_mfcc[:,10:50]
 
     # print(np.var(Xs_mfcc, axis=0))
     Xs_mfcc = normalize(Xs_mfcc, axis=0)  # TODO does it make any difference?!
@@ -132,9 +150,13 @@ if __name__ == '__main__':
         'batch_size': 32,
         'epochs': 100,
         'learning_rate': 0.002,
-        'patience': 50,
+        'patience': 150,
     }
+    print(Counter(ys_num))
+    print(naive_categorization(ys_num))
     ys_num = encode_ys(ys_num)
 
     print(Xs_mfcc.shape, ys_num.shape)
     neural_network(Xs_mfcc, ys_num, **setup)
+
+

@@ -200,14 +200,22 @@ def get_ffts(Xs, ys, NUM_ffts, name=''):
     print('Saving ftts.')
     with open('pkl/Xs_ffts' + name + '.pkl', 'wb') as f:
         pkl.dump(Xs_ffts, f)
-    with open('pkl/ys_num' + name + '.pkl', 'wb') as f:
-        pkl.dump(ys_num, f)
+    # with open('pkl/ys_num' + name + '.pkl', 'wb') as f:
+    #     pkl.dump(ys_num, f)
 
     return Xs_ffts, ys_num
 
 
 def get_in_range(*args, start=0, end=-1):
     return tuple([l[start:end] for l in args])
+
+
+def generate_data(Xs):
+    return Xs + np.random.normal(0, 1, Xs.shape)
+
+
+
+
 """
 Data preprocessing and saving them to a pickle files so they can be opened in main.py.
 
@@ -272,5 +280,5 @@ if __name__ == '__main__':
 
     print('get_mfccs')
     Xs_mfcc, ys_num = get_mfccs(Xs, ys, NUM_mfcc, name)
-    # print('get_ftts')
-    # Xs_ftt, y_num = get_ffts(Xs, ys, NUM_ffts, name)
+    print('get_ftts')
+    Xs_ftt, y_num = get_ffts(Xs, ys, NUM_ffts, name)
