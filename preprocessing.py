@@ -89,7 +89,7 @@ def get_scripts(short=False, name=''):
 
     for i, (script_name, audio_name) in enumerate(zip(script_names, audio_names)):
 
-        script, audio = extract_files(script_path+script_name, path+audio_name)
+        script, audio = extract_files(script_path + script_name, path + audio_name)
         scripts.append(script)
         audios.append(audio)
         print (i + 1, ' done')
@@ -158,19 +158,16 @@ def get_filtered(Xs, lowcut=100, highcut=2000, rate=22050, name='', save=True):
     Xs_filtered = []
 
     for i, X in np.ndenumerate(Xs):
-        # Xs_filtered = np.append(Xs_filtered, butter_bandpass_filter(data=X, lowcut=lowcut, highcut=highcut, fs=rate))
-        Xs_filtered.append(butter_bandpass_filter(data=X, lowcut=lowcut, highcut=highcut, fs=rate))
 
+        Xs_filtered.append(butter_bandpass_filter(data=X, lowcut=lowcut, highcut=highcut, fs=rate))
 
         if i[0] % 100 == 0:
             print(i, 'done', len(Xs_filtered))
 
-
     if save:
         print('Saving filtered.')
-        with open('pkl/Xs_filtered'+name+'.pkl', 'wb') as f:
+        with open('pkl/Xs_filtered' + name + '.pkl', 'wb') as f:
             pkl.dump(Xs_filtered, f)
-
 
     return Xs_filtered
 
@@ -180,12 +177,11 @@ def get_mfccs(Xs, num_mfcc, name='', save=True):
     empty_Xs = []
 
     for i, X in np.ndenumerate(Xs):
-    #     X = np.fft.hfft(X) # Hermitian FFT gives a real output but the signal should have Hermitian symmetry?!
         
         try: 
             Xs_mfcc[i] = np.mean(librosa.feature.mfcc(y=X, sr=rate, n_mfcc=num_mfcc).T, axis=0)  # mean over time
         except:
-            print('EMPTY!')
+            # print('EMPTY!')
             empty_Xs.append(i)
 
     if save:
@@ -195,7 +191,7 @@ def get_mfccs(Xs, num_mfcc, name='', save=True):
 
     return Xs_mfcc
 
-def get_ffts(Xs, ys, num_ffts, name='', save=True):
+def get_ffts(Xs, num_ffts, name='', save=True):
     Xs_ffts = np.empty((len(Xs), NUM_ffts))
     empty_Xs = []
 
@@ -204,23 +200,15 @@ def get_ffts(Xs, ys, num_ffts, name='', save=True):
         
         try: 
             Xs_ffts[i] = np.fft.fft(y=X, n_mfcc=num_ffts)  # mean over time
-            #normalization
-            # Xs_mfcc[i] = scale(Xs_mfcc[i], axis=1)
         except:
             empty_Xs.append(i)
 
 
-    lb = LabelBinarizer().fit(ys)
-    ys_num = lb.transform(ys)
-    print(len(empty_Xs), len(Xs))
-    Xs = np.delete(Xs, empty_Xs, 0)
-    ys = np.delete(ys, empty_Xs, 0)
     if save:
         print('Saving ftts.')
         with open('pkl/Xs_ffts' + name + '.pkl', 'wb') as f:
             pkl.dump(Xs_ffts, f)
-        # with open('pkl/ys_num' + name + '.pkl', 'wb') as f:
-        #     pkl.dump(ys_num, f)
+
 
     return Xs_ffts, ys_num
 
@@ -323,21 +311,11 @@ if __name__ == '__main__':
     ys = f.load_ys()
 
 
-    
-
-  
-
-    print('get_mfccs')
-    Xs_mfcc, ys_num = get_mfccs(Xs, ys, NUM_mfcc, name_all)
-    print('get_ftts')
-    Xs_ftt, y_num = get_ffts(Xs, ys, NUM_ffts, name_all) 
-    """
-
     # Xs_filtered = f.load_Xs_filtered('_3507')
     # ys = f.load_ys()
     # print('len', len(Xs_filtered), len(ys))
 
-    # Xs_mfcc, ys_num = get_mfccs(Xs_filtered, ys, NUM_mfcc, name_all)
+    # Xs_mfcc get_mfccs(Xs_filtered, NUM_mfcc, name_all)
 
     # print('len', len(Xs_mfcc), len(ys_num))
 

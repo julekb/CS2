@@ -3,8 +3,7 @@ import numpy as np
 from numpy.random import seed
 from tensorflow import set_random_seed
 from keras.models import Sequential
-from keras.layers import Dense, Dropout, Activation, Flatten
-from keras.layers import Convolution2D, MaxPooling2D
+from keras.layers import Dense, Dropout, Activation
 from keras import optimizers
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import normalize, LabelEncoder
@@ -14,14 +13,14 @@ import matplotlib.pyplot as plt
 from sklearn.feature_selection import VarianceThreshold
 from keras.callbacks import EarlyStopping
 from collections import Counter
-from sklearn.preprocessing import LabelBinarizer, LabelEncoder
 
 from functions import *
 from preprocessing import generate_data
 
 """
 Fully connected neural network in keras.
-Based on: https://www.analyticsvidhya.com/blog/2017/08/audio-voice-processing-deep-learning/
+Based on: https://www.analyticsvidhya.com/
+blog/2017/08/audio-voice-processing-deep-learning/
 """
 
 
@@ -136,7 +135,7 @@ if __name__ == '__main__':
     with open('pkl/ys_num' + name + '.pkl', 'rb') as f:
         ys_num = pkl.load(f)
 
-
+    Xs_mfcc = Xs_mfcc[:, 1:]
     Xs_mfcc = feature_selection(Xs_mfcc, ys_num, 10)
     # Xs_mfcc = Xs_mfcc[:,10:50]
 
