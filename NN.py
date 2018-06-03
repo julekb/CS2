@@ -94,24 +94,25 @@ def neural_network(X_train, X_test, y_train, y_test, model_name='', batch_size=3
     # confusion matrix
     # print(confusion_matrix(binary_to_categorical(y_test), binary_to_categorical(y_pred)))
 
-    plt.plot(history.history['acc'])
-    plt.plot(history.history['val_acc'])
-    plt.title('Model accuracy')
-    plt.ylabel('Accuracy')
-    plt.xlabel('Epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig('plots/' + model_name + 'model_acc.jpg')
-    # summarize history for loss
-    plt.clf()
-    plt.plot(history.history['loss'])
-    plt.plot(history.history['val_loss'])
-    plt.title('Model loss')
-    plt.ylabel('Loss')
-    plt.xlabel('Epoch')
-    plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig('plots/model_loss.jpg')
-    del model
-    return filepath
+    # plt.plot(history.history['acc'])
+    # plt.plot(history.history['val_acc'])
+    # plt.title('Model accuracy')
+    # plt.ylabel('Accuracy')
+    # plt.xlabel('Epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    # plt.savefig('plots/' + model_name + 'model_acc.jpg')
+    # # summarize history for loss
+    # plt.clf()
+    # plt.plot(history.history['loss'])
+    # plt.plot(history.history['val_loss'])
+    # plt.title('Model loss')
+    # plt.ylabel('Loss')
+    # plt.xlabel('Epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
+    # plt.savefig('plots/model_loss.jpg')
+    # plt.clf()
+    # del model
+    return filepath, history
 
 
 def feature_selection(Xs_mfcc, ys_num, threshold):
@@ -147,22 +148,24 @@ if __name__ == '__main__':
     ys_num = load_ys_num(name=name)
    
     Xs_mfcc = Xs_mfcc[:, 1:]
-    Xs_mfcc = feature_selection(Xs_mfcc, ys_num, 10)
+    # Xs_mfcc = feature_selection(Xs_mfcc, ys_num, 10)
 
     Xs_mfcc = normalize(Xs_mfcc, axis=0)
 
     setup = {
         'batch_size': 32,
-        'epochs': 10,
+        'epochs': 100,
         'learning_rate': 0.002,
-        'patience': 150,
+        'patience': 200,
     }
 
     naive_categorization(ys_num)
     ys_num = encode_ys(ys_num)
-    
+
+
+    X_train, X_test, y_train, y_test = train_test_split(Xs_mfcc, ys_num, test_size=0.05, random_state=43)
 
     print(Xs_mfcc.shape, ys_num.shape)
-    # neural_network(Xs_mfcc, ys_num, **setup)
+    neural_network(X_train, X_test, y_train, y_test, **setup)
 
 

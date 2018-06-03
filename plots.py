@@ -63,3 +63,31 @@ if __name__ == '__main__':
     plt.ylabel('Amplitude')
     plt.legend(['not filtered', 'filtered'])
     plt.savefig(plot_path + 'filtered_mfcc.jpg')
+
+    # grid-search results
+
+    grid = load('grid-search')
+    histories = load('histories')
+
+    plt.clf()
+    plt.figure(figsize=(15,10))
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    for history in histories:
+        plt.plot(history.history['acc'])
+    labels = [g[2][7:-5] for g in grid]
+    plt.legend(labels, loc='upper left')
+    plt.savefig(plot_path + 'grid-acc.jpg')
+
+    plt.clf()
+    plt.figure(figsize=(15,10))
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
+    for history in histories:
+        plt.plot(history.history['loss'])
+    labels = [g[2][7:-5] for g in grid]
+    plt.legend(labels, loc='upper left')
+    plt.savefig(plot_path + 'grid-loss.jpg')
+
