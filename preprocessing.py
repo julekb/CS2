@@ -8,7 +8,7 @@ import pickle as pkl
 from os import listdir
 from os.path import isfile, join
 import re
-import funs as f
+import functions as f
 
 
 def audio_partition(audio, rate, script, classes):
@@ -215,7 +215,6 @@ def get_ffts(Xs, num_ffts, name='', save=True):
 def get_excluded(Xs, ys, excluded_classes, save=True):
     
     for excluded in excluded_classes:
-        print(len(ys), len(Xs))
 
         mask = ys != excluded
         ys = ys[mask]
@@ -226,6 +225,8 @@ def get_excluded(Xs, ys, excluded_classes, save=True):
             pkl.dump(Xs, f)
         with open('pkl/ys_exlcuded-' + '-'.join(excluded_classes) + '.pkl', 'wb') as f:
             pkl.dump(ys, f)
+
+    return Xs, ys
  
 
 
@@ -326,3 +327,4 @@ if __name__ == '__main__':
     ys = f.load_Xs_mfcc()
 
     get_excluded(Xs_mfcc, ys, excluded_classes=excluded_classes)
+""" 

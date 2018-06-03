@@ -2,7 +2,7 @@ import pickle as pkl
 import numpy as np
 from numpy.random import seed
 from tensorflow import set_random_seed
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import Dense, Dropout, Activation
 from keras import optimizers
 from sklearn.model_selection import train_test_split
@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 from sklearn.feature_selection import VarianceThreshold
 from keras.callbacks import EarlyStopping
 from collections import Counter
+from keras.callbacks import ModelCheckpoint
 
 from functions import *
 from preprocessing import generate_data
@@ -24,22 +25,17 @@ blog/2017/08/audio-voice-processing-deep-learning/
 """
 
 
-def neural_network(Xs_mfcc, ys_num, batch_size=32, epochs=100,
-    learning_rate=0.01, patience=10):
+def neural_network(X_train, X_test, y_train, y_test, model_name='', batch_size=32, epochs=300,
+    learning_rate=0.01, patience=30):
 
     seed(42)
     set_random_seed(41)
 
-    X_train, X_test, y_train, y_test = train_test_split(Xs_mfcc, ys_num, test_size=0.2, random_state=43)
-    # TODO this should be done before
-    # X_train = X_train[:, 7:35]
-    # X_test = X_test[:, 7:35]
 
     # X_train = np.vstack([X_train, generate_data(X_train)])
     # y_train = np.vstack([y_train, y_train])
     num_labels = y_train.shape[1]
-    print(X_train.shape)
-    print(y_train.shape)
+
 
     # build model
     model = Sequential()
@@ -55,7 +51,6 @@ def neural_network(Xs_mfcc, ys_num, batch_size=32, epochs=100,
     model.add(Dense(num_labels))
     model.add(Activation('softmax'))
 
-    callback = EarlyStopping(monitor='val_acc', patience=patience)
     optimizer = optimizers.Adam(lr=learning_rate, beta_1=0.9, beta_2=0.999)
 
     model_arguments = {
@@ -66,32 +61,57 @@ def neural_network(Xs_mfcc, ys_num, batch_size=32, epochs=100,
 
     model.compile(**model_arguments)
 
+    # checkpoint
+    
+    filepath = 'models/NN-gridsearch-' + model_name + '.hdf5'
+    checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
+    early_callback = EarlyStopping(monitor='val_acc', patience=100)
+    callbacks_list = [checkpoint, early_callback]
+
+    
     cw = class_weight.compute_class_weight('balanced', np.unique(binary_to_categorical(y_train)), binary_to_categorical(y_train))
-    history = model.fit(X_train, y_train, batch_size=batch_size, epochs=epochs, validation_data=(X_test, y_test),
-        shuffle=True, class_weight=cw, callbacks=[callback])
+
+    model_setup = {
+        'batch_size': batch_size,
+        'epochs': epochs,
+        'validation_data': (X_test, y_test),
+        'shuffle': True,
+        'class_weight': cw,
+        'callbacks': callbacks_list,
+        'verbose': 0
+    }
+    print('batch_size', model_setup['batch_size'])
+
+    history = model.fit(X_train, y_train, **model_setup)
 
     # TODO save trained model
-    y_pred = model.predict(X_test)
+    # model = load_model(filepath)
+    # evalmodel = model.evaluate(X_test, y_test)
+    
+    # print(evalmodel)
+    
 
     # confusion matrix
-    print(confusion_matrix(binary_to_categorical(y_test), binary_to_categorical(y_pred)))
+    # print(confusion_matrix(binary_to_categorical(y_test), binary_to_categorical(y_pred)))
 
     plt.plot(history.history['acc'])
     plt.plot(history.history['val_acc'])
-    plt.title('model accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
+    plt.title('Model accuracy')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Epoch')
     plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig('plot11.jpg')
+    plt.savefig('plots/' + model_name + 'model_acc.jpg')
     # summarize history for loss
     plt.clf()
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
-    plt.title('model loss')
-    plt.ylabel('loss')
-    plt.xlabel('epoch')
+    plt.title('Model loss')
+    plt.ylabel('Loss')
+    plt.xlabel('Epoch')
     plt.legend(['train', 'test'], loc='upper left')
-    plt.savefig('plot22.jpg')
+    plt.savefig('plots/model_loss.jpg')
+    del model
+    return filepath
 
 
 def feature_selection(Xs_mfcc, ys_num, threshold):
@@ -116,13 +136,6 @@ def naive_categorization(ys_num):
     print('Most common: %s with %f probability of occurance' % (max_key, max_value / values_sum))
 
 
-
-def encode_ys(ys_num):
-    ys_num = LabelEncoder().fit_transform(ys_num)
-    ys_num = LabelBinarizer().fit_transform(ys_num)
-    return ys_num
-
-
 if __name__ == '__main__':
 
 
@@ -130,31 +143,26 @@ if __name__ == '__main__':
 
     # loading files created with preprocessing.py
 
-    with open('pkl/Xs_mfcc' + name + '.pkl', 'rb') as f:
-        Xs_mfcc = pkl.load(f) #  should the first feature be deleted? it was somewhere written that the first one is just a coef
-    with open('pkl/ys_num' + name + '.pkl', 'rb') as f:
-        ys_num = pkl.load(f)
-
+    Xs_mfcc = load_Xs_mfcc(name=name)
+    ys_num = load_ys_num(name=name)
+   
     Xs_mfcc = Xs_mfcc[:, 1:]
     Xs_mfcc = feature_selection(Xs_mfcc, ys_num, 10)
-    # Xs_mfcc = Xs_mfcc[:,10:50]
 
-    # print(np.var(Xs_mfcc, axis=0))
-    Xs_mfcc = normalize(Xs_mfcc, axis=0)  # TODO does it make any difference?!
+    Xs_mfcc = normalize(Xs_mfcc, axis=0)
 
-    # print(np.var(Xs_mfcc, axis=0))
     setup = {
         'batch_size': 32,
-        'epochs': 100,
+        'epochs': 10,
         'learning_rate': 0.002,
         'patience': 150,
     }
-    print(Counter(ys_num))
-    print(naive_categorization(ys_num))
+
+    naive_categorization(ys_num)
     ys_num = encode_ys(ys_num)
-    print(ys_num)
+    
 
     print(Xs_mfcc.shape, ys_num.shape)
-    neural_network(Xs_mfcc, ys_num, **setup)
+    # neural_network(Xs_mfcc, ys_num, **setup)
 
 
