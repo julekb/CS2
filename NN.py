@@ -65,7 +65,7 @@ def neural_network(X_train, X_test, y_train, y_test, model_name='', batch_size=3
     
     filepath = 'models/NN-gridsearch-' + model_name + '.hdf5'
     checkpoint = ModelCheckpoint(filepath, monitor='val_acc', verbose=0, save_best_only=True, mode='max')
-    early_callback = EarlyStopping(monitor='val_acc', patience=100)
+    early_callback = EarlyStopping(monitor='val_acc', patience=300)
     callbacks_list = [checkpoint, early_callback]
 
     

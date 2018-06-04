@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import normalize
 import pickle as pkl
 import matplotlib.pyplot as plt
+from numpy.random import seed
 
 if __name__ == '__main__':
 
@@ -15,13 +16,12 @@ if __name__ == '__main__':
 
     # preprocessing
 
-    """
     scripts, audios = prep.get_scripts()
     Xs, ys = prep.get_parts(scripts, audios, save=False)
     Xs = prep.get_filtered(Xs, save=False)
     Xs = prep.get_mfccs(Xs, NUM_mfcc, name='_all', save=True)
 
-    # print('Data preprocessed.')
+    print('Data preprocessed.')
     
     Xs = load_Xs_mfcc(name='_all')
     ys = load_ys(name='_all')
@@ -30,6 +30,7 @@ if __name__ == '__main__':
     ys = encode_ys(ys)
     print(Xs)
     Xs = normalize(Xs)
+
     # train, test set split
 
     X_train, X_test, y_train, y_test = train_test_split(Xs, ys, test_size=0.05, random_state=43)
@@ -37,18 +38,18 @@ if __name__ == '__main__':
     X_train, X_dev, y_train, y_dev = train_test_split(X_train, y_train, test_size=0.2, random_state=44)
 
     save([X_train, X_dev, X_test, y_train, y_dev, y_test], 'splited')
-   """
+ 
     X_train, X_dev, X_test, y_train, y_dev, y_test = load('splited')
 
     # make up data
 
-    # X_train = np.vstack([X_train, generate_data(X_train)])
-    # y_train = np.vstack([y_train, y_train])
+    X_train = np.vstack([X_train, generate_data(X_train)])
+    y_train = np.vstack([y_train, y_train])
 
     # grid search
 
-    batch_sizes = [8, 16, 32, 64, 128]
-    learning_rates = [0.1, .05, 0.02, 0.01, 0.001]
+    batch_sizes = [8, 32, 64, 128, 256]
+    learning_rates = [0.1, 0.01, 0.001]
 
     histories = []
     grid = []
@@ -80,11 +81,52 @@ if __name__ == '__main__':
             histories.append(history)
                 
             print(i, ' done out of ', i_max)
-            i += 1
+            
 
-    save(histories, 'histories')
+    save(histories, 'histories2')
     print(grid)
-    save(grid, 'grid-search')
-    
+    save(grid, 'grid-search2')
+  
 
-    # Neural network
+    X_train, X_dev, X_test, y_train, y_dev, y_test = load('splited')
+    np.random.seed(5)
+    X_train = np.vstack([X_train, prep.generate_data(X_train)])
+    y_train = np.vstack([y_train, y_train])
+
+    hyper = [[0.0005, 8], [0.001, 32], [0.01, 256]]
+
+    histories = []
+    grid = []
+
+    make_keras_picklable() # enables to pickle keras models
+
+    i_max = 3
+    for i, (learning_rate, batch_size) in enumerate(hyper):
+        setup = {
+
+
+            'batch_size': batch_size,
+            'learning_rate': learning_rate, 
+        }
+        name = '-'.join([str(x) for x in list(setup.values())])
+        setup2 = {
+            'X_train': X_train,
+            'X_test': X_dev,
+            'y_train': y_train,
+            'y_test': y_dev,
+            'model_name': name,
+            'epochs': 300,
+        }
+        setup.update(setup2)
+        
+        model_eval, history = neural_network(**setup)
+        grid.append([hyper[i][1], hyper[i][0] , model_eval])
+        histories.append(history)
+            
+        print(i, ' done out of ', i_max)
+        
+
+    save(histories, 'histories2')
+    print(grid)
+    save(grid, 'grid-search2')
+
